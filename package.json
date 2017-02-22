@@ -15,6 +15,7 @@
   },
   "devDependencies": {
     "eslint": "^3.16.0",
+    "pre-commit": "^1.2.2",
     "precommit": "^1.2.2"
   }
 }
