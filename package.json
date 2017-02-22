@@ -1,0 +1,20 @@
+{
+  "name": "redbone",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Constantin T.",
+  "license": "MIT",
+  "dependencies": {
+    "bluebird": "^3.4.7",
+    "intel": "^1.1.2",
+    "lodash": "^4.17.4"
+  },
+  "devDependencies": {
+    "eslint": "^3.16.0",
+    "precommit": "^1.2.2"
+  }
+}
