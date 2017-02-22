@@ -1,5 +1,5 @@
 # redbone
-Library to client-server-client redux dispatching
+Library for client->server->client redux dispatching
 
 ##Install
 ```
