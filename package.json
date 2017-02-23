@@ -1,15 +1,19 @@
 {
   "name": "redbone",
   "version": "1.0.4",
-  "description": "",
+  "description": "Polymorphic library for two way redux dispatching",
   "main": "index.js",
   "repository": {
     "type": "git",
     "url": "git+ssh://git@github.com:ya-kostik/redbone.git"
   },
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "eslint": "./node_modules/eslint/bin/eslint.js ./"
   },
+  "pre-commit": [
+    "eslint"
+  ],
   "author": "Constantin T.",
   "license": "MIT",
   "dependencies": {
