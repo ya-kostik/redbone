@@ -45,10 +45,10 @@ All `socket.dispatch(action)` at redbone watcher will perform action to client
 
 Optionaly, you can add special middleware to redux for client → server dispatching
 ```js
-import serverDispatchMidddleware from 'redbone/client/getServerDispatchMidddleware';
+import serverDispatchMiddleware from 'redbone/client/getServerDispatchMiddleware';
 //...
 //io — your socket.io connection to server
-middlewares.unshift(serverDispatchMidddleware(io));
+middlewares.unshift(serverDispatchMiddleware(io));
 //...
 const createStoreWithMiddlewares = compose(applyMiddleware(...middlewares))(createStore);
 const store = createStoreWithMiddlewares(reducer);
