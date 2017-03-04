@@ -1,4 +1,4 @@
-const isPlainObject = require('lodash/isPlainObject');
+const { isPlainObject } = require('lodash');
 
 var server_regexp = /^@@server\/.*?$/i
 
@@ -7,7 +7,7 @@ var server_regexp = /^@@server\/.*?$/i
  * @param  {Socket} io socket.io connection to server
  * @return {Mided}  do not use it
  */
-module.exports = function getServerDispatchMidddleware(io) {
+module.exports = function getServerDispatchMiddleware(io) {
   return function () {
     return function(next) {
       return function(action) {

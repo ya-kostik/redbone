@@ -1,6 +1,5 @@
 const codes = require('http').STATUS_CODES;
 
-
 class HttpError extends Error {
   constructor(code, message) {
     super(message);
