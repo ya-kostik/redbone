@@ -1,4 +1,4 @@
-const isPlainObject = require('lodash/isPlainObject');
+const { isPlainObject } = require('lodash');
 
 var server_regexp = /^@@server\/.*?$/i
 
