@@ -54,6 +54,15 @@ const createStoreWithMiddlewares = compose(applyMiddleware(...middlewares))(crea
 const store = createStoreWithMiddlewares(reducer);
 ```
 
+`serverDispatchMiddleware` takes options as second parameter. If you want to pass server-side actions to store set `next` property as `true`, but if you want to exclude some actions from passing, set array of type to `exclude` property:
+
+```
+middlewares.unshift(serverDispatchMiddleware(io, {
+  next: true,
+  exclude: [TYPES.EXCLUDED_TYPE, TYPES.EXCLUDED_TYPE_TOO]
+}));
+```
+
 ## Watchers
 documentation comming soon
 Look at server side example
