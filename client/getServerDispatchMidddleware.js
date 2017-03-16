@@ -1,5 +1,5 @@
 const isPlainObject = require('lodash/isPlainObject');
-const merge = require('lodash/merge');
+const assign = require('lodash/assign');
 
 var server_regexp = /^@@server\/.*?$/i
 var defaultOptions = {
@@ -16,7 +16,7 @@ var defaultOptions = {
  * @return {Mided}  - do not use it
  */
 module.exports = function getServerDispatchMiddleware(io, options) {
-  let middlewareOptions = options ? merge(defaultOptions, options) : defaultOptions;
+  let middlewareOptions = options ? assign(defaultOptions, options) : defaultOptions;
 
   return function () {
     return function(next) {
