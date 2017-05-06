@@ -54,7 +54,9 @@ const createStoreWithMiddlewares = compose(applyMiddleware(...middlewares))(crea
 const store = createStoreWithMiddlewares(reducer);
 ```
 
-`serverDispatchMiddleware` takes options as second parameter. If you want to pass server-side actions to store set `next` property as `true`, but if you want to filter actions, set array of type to `exclude` or `include` property:
+`serverDispatchMiddleware` takes options as second parameter. If you want to pass server-side actions to store set `next` property as `true`.
+
+If you want to filter actions, set array of types to `exclude` or `include` property:
 
 ```js
 middlewares.unshift(serverDispatchMiddleware(io, {

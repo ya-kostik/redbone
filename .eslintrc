@@ -6,10 +6,9 @@
   "extends": ["eslint:recommended"],
   "rules": {
     "no-console": ["error", { "allow": ["warn", "error", "info", "dir"] }],
-    "no-cond-assign": [0, "except-parens"],
+    "no-cond-assign": [0, "except-parens"]
   },
   "globals": {
     "NODE_ENV": true
-  },
-  "ignore-path": ["node_modules"]
+  }
 }
