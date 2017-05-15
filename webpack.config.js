@@ -3,11 +3,13 @@ const path = require('path');
 
 module.exports = {
   entry: {
-    getServerDispatchMidddleware: path.resolve(__dirname, './lib/client/getServerDispatchMidddleware.js')
+    getServerDispatchMiddleware: path.join(__dirname, './lib/client/getServerDispatchMiddleware.js')
   },
   output: {
-    path: path.resolve(__dirname, './client'),
-    filename: '[name].js'
+    path: path.join(__dirname, './client'),
+    filename: '[name].js',
+    library: 'redbone/client/getServerDispatchMiddleware',
+    libraryTarget: 'commonjs-module'
   },
   plugins: [
     new webpack.optimize.UglifyJsPlugin({

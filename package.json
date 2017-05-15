@@ -10,7 +10,7 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "eslint": "./node_modules/eslint/bin/eslint.js ./",
-    "build": "webpack"
+    "build": "./node_modules/webpack/bin/webpack.js"
   },
   "pre-commit": [
     "eslint"
