@@ -6,7 +6,7 @@ Library for client → server → client redux dispatching
 npm install --save redbone
 ```
 
-## Using
+## Quick example
 ### Server side
 ```js
 //...
