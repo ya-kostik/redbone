@@ -1,1 +1,1 @@
-module.exports = require('./lib/redbone');
+module.exports = require('./lib/classes/Redbone');
