@@ -8,7 +8,7 @@
     "url": "git+ssh://git@github.com:ya-kostik/redbone.git"
   },
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
+    "test": "node ./node_modules/.bin/cucumber-js",
     "eslint": "./node_modules/eslint/bin/eslint.js ./",
     "build": "./node_modules/webpack/bin/webpack.js"
   },
@@ -27,8 +27,10 @@
     "babel-eslint": "^7.2.3",
     "babel-loader": "^7.0.0",
     "babel-preset-es2015": "^6.24.1",
+    "cucumber": "^3.0.0",
     "eslint": "^4.2.0",
     "pre-commit": "^1.2.2",
+    "socket.io": "^2.0.3",
     "webpack": "^2.4.1"
   }
 }

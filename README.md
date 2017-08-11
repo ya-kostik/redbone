@@ -1,5 +1,5 @@
-# redbone
-Library for client → server → client redux dispatching
+# Redbone
+Socket backend for your Redux application
 
 ## Install
 ```
@@ -10,29 +10,43 @@ npm install --save redbone
 ### Server side
 ```js
 //...
-const redbone = require('redbone');
-//...
-
-//Watch to client action
-redbone.watch('@@server/user/GET', function(socket, action, next) {
-  if (!action.user_id) return next(new Error('User not found'));
-  //Your logic here, getUser — just example
-  getUser(action.user_id).then((user) => {
-    if (!user) return next(new Error('User not found'));
-    //dispatch action to client
-    socket.dispatch({ '@@user/current/SET', user });
-  }).catch(next);
-});
-//You can chain some of redbone methods
-redbone.watch('@@server/user/SET', function(socket, action, next) {
-  if (!action.user) return next(new Error('User is undefined'));
-  setUser(action.user).then(() => socket.dispatch({ type: '@@system/SUCCESS_SAVE' )).catch(next);
-}).catch((socket, err) => {
-  socket.dispatch({ type: '@@system/SHOW_ERROR_MODAL', title: 'Server Error', err });
-});
+const Redbone = require('redbone');
 
 //io — your socket io server instance
-redbone(io);
+const redbone = new Redbone(io);
+
+//Watch to client action
+redbone.watch('@@server/user/GET', async function(socket, action) {
+  if (!action.user) throw new Error('User not found');
+  //Your logic here, getUser — just example
+  const user = await Model.getUser(action.user);
+  if (!user) throw new Error('User not found');
+  //dispatch action to client
+  socket.dispatch({ '@@user/current/SET', user });
+});
+
+redbone.watch('@@server/user/SET', async function(socket, action) {
+  if (!action.user) throw new Error('User is undefined');
+  const user = await Model.setUser(action.user);
+  socket.dispatch({ type: '@@system/SUCCESS_SAVE', user });
+})
+
+redbone.catch((socket, action, err) => {
+  if (action.type === '@@server/user/GET') {
+    if (err.message === 'User not found') {
+      return socket.dispatch({
+        type: '@@system/SHOW_ERROR_MODAL',
+        title: 'User not found'
+      });
+    }
+  }
+  socket.dispatch({
+    type: '@@system/SHOW_ERROR_MODAL',
+    title: 'Server Error',
+    err
+  });
+});
+
 ```
 
 ### Client side
@@ -69,5 +83,60 @@ middlewares.unshift(serverDispatchMiddleware(io, {
 If you set `next` as `false`, filters **will not work**!
 
 ## Watchers
-documentation comming soon
-Look at server side example
+
+If you want process some of `action.type`, you can use `redbone.watch`:
+```javascript
+redbone.watch(TYPE, fn);
+```
+`TYPE` — is the `action.type`
+`fn` — function to process this `TYPE`.
+`fn` receive 2 params:
+- `socket` — [syntetic Socket](https://github.com/ya-kostik/redbone/blob/v2.0.0/lib/classes/Socket.js) instance
+- `action` from client with `{ type: TYPE }` schema.
+
+
+For quick load folder with watchers you can use `readWatchers(dir)` or `readWatchersSync(dir)`:
+
+**./watchers/user.js**
+```javascript
+// Easy errors process
+const HttpError = require('redbone/Errors/HttpError');
+const db = require('../db');
+async load(socket, action) {
+  if (!action.id) throw new HttpError(400, 'User is is not defined');
+  const user = await db.User.findOne({ id: action.id });
+  socket.dispatch({ type: '@@client/user/SETUP', user });
+}
+
+module.exports = [
+  { type: "@@server/user/LOAD", action: load }
+];
+```
+**./socket.js**
+```javascript
+// ...
+// scan all watchers directory and set watchers
+redbone.readWatchersSync(path.join(__dirname, './watchers/'));
+// ...
+```
+
+Maybe you want use your custom logic for setup several watchers? Ok, just use [`processWatchers(watchers)` method](https://github.com/ya-kostik/redbone/blob/v2.0.0/lib/classes/Redbone.js#L68)
+
+## Middlewares
+Just use `use` method of Redbone instance =).
+```javascript
+redbone.use((socket, action) => {
+  if (!action.token) throw new HttpError(403, 'Invalid token');
+});
+```
+
+If you want stop middleware, just `return false` from it:
+```javascript
+redbone.use((socket, action) => {
+  if (action.type === '@@server/CONSOLE_LOG') {
+    console.info(action.log);
+    // Stop middlewares and watchers process
+    return false;
+  }
+});
+```
