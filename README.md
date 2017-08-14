@@ -120,7 +120,7 @@ redbone.readWatchersSync(path.join(__dirname, './watchers/'));
 // ...
 ```
 
-Maybe you want use your custom logic for setup several watchers? Ok, just use [`processWatchers(watchers)` method](https://github.com/ya-kostik/redbone/blob/v2.0.0/lib/classes/Redbone.js#L68)
+Maybe you want use your custom logic for setup several watchers? Ok, just use [`processWatchers(watchers)` method](https://github.com/ya-kostik/redbone/blob/v2.0.0/lib/classes/Redbone.js#L114)
 
 ## Middlewares
 Just use `use` method of Redbone instance =).
