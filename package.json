@@ -1,6 +1,6 @@
 {
   "name": "redbone",
-  "version": "2.0.3",
+  "version": "2.0.4",
   "description": "Polymorphic library for two way redux dispatching",
   "main": "index.js",
   "repository": {
