@@ -3,7 +3,8 @@ const path = require('path');
 
 module.exports = {
   entry: {
-    getServerDispatchMiddleware: path.join(__dirname, './lib/client/getServerDispatchMiddleware.js')
+    getServerDispatchMiddleware: path.join(__dirname, './lib/client/getServerDispatchMiddleware.js'),
+    Redbone: path.join(__dirname, './lib/client/Redbone.js'),
   },
   output: {
     path: path.join(__dirname, './client'),
