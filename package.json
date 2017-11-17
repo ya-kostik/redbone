@@ -10,7 +10,8 @@
   "scripts": {
     "test": "node ./node_modules/.bin/cucumber-js",
     "eslint": "./node_modules/eslint/bin/eslint.js ./",
-    "build": "./node_modules/webpack/bin/webpack.js"
+    "build": "./node_modules/webpack/bin/webpack.js",
+    "postinstall": "npm run build"
   },
   "pre-commit": [
     "eslint"
