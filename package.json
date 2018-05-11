@@ -19,7 +19,6 @@
   "author": "Constantin T.",
   "license": "MIT",
   "dependencies": {
-    "bluebird": "^3.4.7",
     "lodash": "^4.17.4"
   },
   "devDependencies": {
