@@ -1,81 +1,43 @@
 const isFunction = require('lodash/isFunction');
 const isString = require('lodash/isString');
-const Connector = require('./Connector');
+const intel = require('intel');
+const Socket = require('./Socket');
+const Pubsub = require('./Pubsub');
+const EventEmitter = require('events');
 const processTypes = require('../services/processTypes');
 const makeAction = require('../services/makeAction');
 
 /**
  * Redbone main class
  * @class Redbone
+ * @prop {Object}   io          socket.io instance
  * @prop {Array}    middlewares array of middlewares
  * @prop {Map}      watchers    watchers map; keys — type for watcher fn
  * @prop {Function} catcher     function to process errors
  * @prop {Object}   types       default redbone types for socket lifecicle actions
- * @property {Object|null} connector  sets or gets Connector's instance
  */
-class Redbone {
-  constructor(connector) {
+class Redbone extends EventEmitter {
+  constructor(io) {
+    super();
+    this.io = io;
+    io.on('connection', (socket) => {
+      const synteticSocket = new Socket(socket, this);
+      this.run(synteticSocket, { type: this.types.CONNECTION });
+      socket.once('disconnect', () => {
+        this.run(synteticSocket, { type: this.types.DISCONNECT });
+      });
+      socket.on('dispatch', (action) => this.run(synteticSocket, action));
+
+    });
     this.middlewares = [];
     this.watchers = new Map();
     this.catcher = this.onError;
     this.types = {
       CONNECTION: '@@server/CONNECTION',
       DISCONNECT: '@@server/DISCONNECT',
-      ERROR:      '@@server/ERROR'
+      ERROR:      '@@redbone/ERROR'
     }
-
-    this.onConnection = this.onConnection.bind(this);
-    this.onDisconnect = this.onDisconnect.bind(this);
-    this.onDispatch = this.onDispatch.bind(this);
-    this.connector = connector;
-  }
-
-  get connector() {
-    return this._connector || null;
-  }
-
-  set connector(connector) {
-    if (!connector) {
-      this._connector = null;
-      return;
-    }
-    if (!(connector instanceof Connector)) {
-      throw new TypeError('connector is not a Connector instance');
-    }
-    this.removeListenersFromConnector();
-    this._connector = connector;
-    this._connector.redbone = this;
-    this.addListenersToTheConnector();
-  }
-
-  removeListenersFromConnector() {
-    const connector = this.connector;
-    if (!connector) return this;
-    connector.removeListener('connection', this.onConnection);
-    connector.removeListener('disconnect', this.onDisconnect);
-    connector.removeListener('dispatch', this.onDispatch);
-    return this;
-  }
-
-  addListenersToTheConnector() {
-    const connector = this.connector;
-    if (!connector) throw new TypeError('connector is not defined');
-    connector.on('connection', this.onConnection);
-    connector.on('disconnect', this.onDisconnect);
-    connector.on('dispatch', this.onDispatch);
-    return this;
-  }
-
-  onConnection(client) {
-    this.run(client, { type: this.types.CONNECTION });
-  }
-
-  onDisconnect(client) {
-    this.run(client, { type: this.types.DISCONNECT });
-  }
-
-  onDispatch(client, action) {
-    this.run(client, action);
+    this.dispatch.to = this.dispatchTo.bind(this);
   }
 
   /**
@@ -120,7 +82,30 @@ class Redbone {
    */
   catch(middleware) {
     this.isMiddleware(middleware);
+    intel.verbose('Replace default redbone err handler');
     this.catcher = middleware;
+    return this;
+  }
+
+  /**
+   * dispatch action to all clients
+   * @param  {Object}  action do dispatch
+   * @return {Redbone}        this
+   */
+  dispatch(action) {
+    this.io.emit('dispatch', action);
+    return this;
+  }
+
+  /**
+   * dispatch to client by id
+   * @param  {Object}  action to dispatch
+   * @return {Redbone}        this
+   */
+  dispatchTo(id, action) {
+    const socket = this.io.sockets.connected[id];
+    if (!socket) throw new TypeError('undefined is not a socket');
+    Socket.dispatch(socket, action);
     return this;
   }
 
@@ -177,11 +162,7 @@ class Redbone {
    */
   async runWatchers(socket, action) {
     if (!(action && isString(action.type))) {
-      this.catcher(
-        socket,
-        action,
-        new TypeError('action.type should be a string')
-      );
+      return intel.error('action.type should be a string');
     }
     const watcher = this.watchers.get(action.type);
     if (!watcher) return this;
@@ -257,6 +238,25 @@ class Redbone {
     return this;
   }
 
+  /**
+   * use default redbone options
+   * @return {Redbone}        this
+   */
+  default() {
+    this.use(require('../middlewares/intel'));
+    return this;
+  }
+
+  /**
+   * Init pubsub system
+   * @param  {Object} TYPES types object with SUB and UNSUB types, for client subscribe
+   * @return {Redbone} this
+   */
+  initPubsub(TYPES) {
+    this.pubsub = new Pubsub(this, TYPES);
+    return this;
+  }
+
   onError(socket, action, err) {
     if (err.constructor.name === 'HttpError') {
       return socket.dispatch({
@@ -272,5 +272,6 @@ class Redbone {
 
 Redbone.prototype.processTypes = processTypes;
 Redbone.prototype.makeAction = makeAction;
+
 
 module.exports = Redbone;
