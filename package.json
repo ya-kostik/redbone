@@ -8,7 +8,7 @@
     "url": "git+ssh://git@github.com:ya-kostik/redbone.git"
   },
   "scripts": {
-    "test": "jest",
+    "test": "jest --verbose",
     "watch": "jest --watch",
     "eslint": "./node_modules/eslint/bin/eslint.js ./",
     "build": "./node_modules/webpack/bin/webpack.js"
