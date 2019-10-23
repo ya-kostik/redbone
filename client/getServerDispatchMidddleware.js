@@ -4,7 +4,8 @@ const assign = require('lodash/assign');
 var server_regexp = /^@@server\/.*?$/i
 var defaultOptions = {
   next: false,
-  exclude: null
+  exclude: null,
+  event: 'dispatch'
 }
 
 /**
@@ -26,9 +27,9 @@ module.exports = function getServerDispatchMiddleware(io, options) {
         if (server_regexp.test(action.type)) {
           if (!middlewareOptions.exclude || middlewareOptions.exclude.indexOf(action.type) === -1) {
             if (middlewareOptions.next === false) {
-              return io.emit('dispatch', action);
+              return io.emit(options.event, action);
             } else {
-              io.emit('dispatch', action);
+              io.emit(options.event, action);
             }
           }
         }
