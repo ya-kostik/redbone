@@ -3,10 +3,12 @@ const isString = require('lodash/isString');
 const isRegExp = require('lodash/isRegExp');
 
 const isNot = require('../lib/isNot');
-const setToMap = require('../lib/setToMap')
+const setToMap = require('../lib/setToMap');
 
 class Middleware {
-  constructor() {
+  constructor(redbone) {
+    this.redbone = redbone;
+
     this.plainHandlers = new Map();
     this.regexpHandlers = new Map();
     this.allHandlers = [];
@@ -55,6 +57,9 @@ class Middleware {
     } else if (isRegExp(type)) {
       setToMap(type, handler, this.regexpHandlers);
     }
+
+    // It is need for chaining
+    return this.redbone;
   }
 
   dispatch(client, action) {
@@ -64,7 +69,7 @@ class Middleware {
 
   async run(handlers, client, action) {
     for (const handler of handlers) {
-      const result = await handler(client, action);
+      const result = await handler(client, action, this.redbone);
       if (result === false) return false;
     }
 

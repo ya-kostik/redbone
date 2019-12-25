@@ -64,16 +64,16 @@ describe('Redbone class', () => {
     expect(regexpWatcher.mock.calls.length).toBe(1);
   });
 
-  test('don\'t takes invalid action', () => {
+  test('don\'t takes invalid action', async () => {
     const redbone = new Redbone();
     const client = new Client();
     // test action without type
-    expect(redbone.dispatch(client, {})).rejects.toThrow(ACTION_ERROR_TEXT);
+    await expect(redbone.dispatch(client, {})).rejects.toThrow(ACTION_ERROR_TEXT);
     // test string action
-    expect(redbone.dispatch(client, 'test')).rejects.toThrow(ACTION_ERROR_TEXT);
+    await expect(redbone.dispatch(client, 'test')).rejects.toThrow(ACTION_ERROR_TEXT);
     // test no action
-    expect(redbone.dispatch(client)).rejects.toThrow(ACTION_ERROR_TEXT);
-    expect(redbone.dispatch(client, null)).rejects.toThrow(ACTION_ERROR_TEXT);
+    await expect(redbone.dispatch(client)).rejects.toThrow(ACTION_ERROR_TEXT);
+    await expect(redbone.dispatch(client, null)).rejects.toThrow(ACTION_ERROR_TEXT);
   });
 
   test('uses before middlewares for all types', async () => {
@@ -129,5 +129,47 @@ describe('Redbone class', () => {
     expect(beforeMiddleware.mock.calls.length).toBe(1);
     expect(afterMiddleware.mock.calls.length).toBe(1);
     expect(testWatcher.mock.calls.length).toBe(1);
+  });
+
+  test('catches errors in the catcher', async () => {
+    const redbone = new Redbone();
+    const testClient = new Client();
+
+    const type = 'test';
+
+
+    const error = new Error('Test error');
+
+    const catcher = jest.fn((err, client, action) => {
+      expect(err).toBe(error);
+      expect(client).toBe(testClient);
+      expect(action.type).toBe(type);
+    });
+
+    const watcher = () => {
+      throw error;
+    };
+
+    // try chaining
+    redbone.
+    watch(watcher).
+    catch(catcher);
+
+    await redbone.dispatch(testClient, { type });
+
+    expect(catcher.mock.calls.length).toBe(1);
+  });
+
+  test('throws regular error if no catcher specified', async () => {
+    const redbone = new Redbone();
+    const client = new Client();
+
+    const type = 'test';
+    const error = new Error('Test error');
+
+    const middleware = () => { throw error };
+    redbone.use(middleware);
+
+    await expect(redbone.dispatch(client, { type })).rejects.toThrow(error);
   });
 });
