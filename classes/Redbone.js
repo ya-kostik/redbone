@@ -8,18 +8,23 @@ class Redbone {
 
     this.before = new Middleware();
     this.watchers = new Middleware();
+    this.after = new Middleware();
   }
 
   watch(type, watcher) {
     this.watchers.use(type, watcher);
   }
 
+  bind(client) {
+    if (!client.redbone) client.redbone = this;
+  }
+
   async dispatch(client, action) {
     isNot(action, 'valid action', 'action');
-    if (!client.redbone) client.redbone = this;
-
+    this.bind(client);
     return (await this.before.dispatch(client, action))
-      && (await this.watchers.dispatch(client, action));
+      && (await this.watchers.dispatch(client, action))
+      && (await this.after.dispatch(client, action));
   }
 
   use(type, middleware) {

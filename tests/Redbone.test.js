@@ -98,7 +98,8 @@ describe('Redbone class', () => {
     expect(secondMiddleware.mock.calls.length).toBe(1);
     expect(testWatcher.mock.calls.length).toBe(1);
 
-    redbone.use(stopMiddleware);
+    // Direct call use of before
+    redbone.before.use(stopMiddleware);
 
     await redbone.dispatch(client, { type });
 
@@ -107,4 +108,26 @@ describe('Redbone class', () => {
     expect(stopMiddleware.mock.calls.length).toBe(1);
     expect(testWatcher.mock.calls.length).toBe(1);
   });
-})
+
+  test('uses after middlewares for all types', async () => {
+    const redbone = new Redbone();
+    const client = new Client();
+
+    const type = 'test';
+
+    const watcher = getTestWatcher(redbone, client, type);
+    const beforeMiddleware = jest.fn((watcher));
+    const afterMiddleware = jest.fn(watcher);
+    const testWatcher = jest.fn(watcher);
+
+    redbone.use(beforeMiddleware);
+    redbone.watch(testWatcher);
+    redbone.after.use(afterMiddleware);
+
+    await redbone.dispatch(client, { type });
+
+    expect(beforeMiddleware.mock.calls.length).toBe(1);
+    expect(afterMiddleware.mock.calls.length).toBe(1);
+    expect(testWatcher.mock.calls.length).toBe(1);
+  });
+});
