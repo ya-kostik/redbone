@@ -1,221 +1,229 @@
 # Redbone
-Backend for your application. Inspired by Redux.
-But you can use it with Vuex, or any Flux library.
+Polymorphic library for two-way dispatching of actions
 
-You can use it with any transport you want, but by default Redbone has only socket.io support.
+# Why
+It all started with laziness.
+Once, when I was writing an application on redux + web sockets, I thought, why do I need so many bindings and subscriptions for server events?
+Why I can't forward an object from the server directly to `store.dispatch`?
 
-## Install
+The actions to me seemed like a pretty good container for data transfer,
+and just one event for sending and receiving data makes it possible to flexibly control the flow of data between the server and the client.
 
-### npm
-```
-npm install redbone
-```
+After several iterations, I got Redbone - a small wrapper over socket.io,
+which blurred the line between the backend and frontend of my applications.
 
-### yarn
-```
+Starting with version 3, the Socket.io is no longer need to the Redbone.
+You can use any transport that you like: WSS, Socket.io, TCP, etc.
+Also, Redbone no longer limits the choice of storage.
+You can use Redux, MobX, Vuex, Backbone or any other storage in the frontend.
+
+# Install
+Via yarn
+```sh
 yarn add redbone
 ```
 
-## Quick start with socket.io
+Via npm
+```sh
+npm install redbone
+```
 
-### Server side
+Additionaly, install `socket.io`, or other transport modules, if it requires.
+
+# Core concepts
+## Create Redbone's instance
 ```js
-//... io — is a socket.io server instance
 const Redbone = require('redbone');
-const SocketIOConnector = Redbone.connectors.SocketIO;
-
-const connector = new SocketIOConnector(io);
-const redbone = new Redbone(connector);
-
-//Watch to client action
-redbone.watch('@@server/user/GET', async function(client, action) {
-  if (!action.user) throw new Error('User not found');
-  //Your logic here, getUser — just example
-  const user = await Model.getUser(action.user);
-  if (!user) throw new Error('User not found');
-  //dispatch action to client
-  client.dispatch({ '@@user/current/SET', user });
-});
-
-redbone.watch('@@server/user/SET', async function(client, action) {
-  if (!action.user) throw new Error('User is undefined');
-  const user = await Model.setUser(action.user);
-  client.dispatch({ type: '@@system/SUCCESS_SAVE', user });
-})
-
-redbone.catch((client, action, err) => {
-  if (action.type === '@@server/user/GET') {
-    if (err.message === 'User not found') {
-      return client.dispatch({
-        type: '@@system/SHOW_ERROR_MODAL',
-        title: 'User not found'
-      });
-    }
-  }
-  client.dispatch({
-    type: '@@system/SHOW_ERROR_MODAL',
-    title: 'Server Error',
-    err
-  });
-});
-
+const redbone = new Redbone(transport);
 ```
-
-### Client side with Redux
-After create your store, just add
-```js
-// io — your socket.io connection to server
-// dispatch — your choisen event name, default is “dispatch”
-// you can change it on the server side
-// new SocketIOConnector(io, inEvent, outEvent)
-// inEvent — event for input events — defaults is “dispatch”
-// outEvent — event for output events — events for client  — defaults is inEvent value
-io.on('dispatch', store.dispatch);
-```
-All `client.dispatch(action)` at redbone watcher will perform action to client
 
 ## Watchers
+Watchers is a small functions, which handle action types.
+You can add one or more watchers to the one [action type](https://redux.js.org/basics/actions).
 
-If you want process some of `action.type`, you can use `redbone.watch`:
-```javascript
-redbone.watch(TYPE, fn);
-```
-`TYPE` — is the `action.type`
-`fn` — function to process this `TYPE`.
-`fn` receive 2 params:
-- `client` is a connection to client side, creates by connector
-- `action` from client with `{ type: TYPE }` schema.
-
-
-For quick load folder with watchers you can use `readWatchers(dir)` or `readWatchersSync(dir)`:
-
-**./watchers/user.js**
-```javascript
-// Easy errors process
-const HttpError = require('redbone/Errors/HttpError');
-const db = require('../db');
-async load(client, action) {
-  if (!action.id) throw new HttpError(400, 'User is is not defined');
-  const user = await db.User.findOne({ id: action.id });
-  client.dispatch({ type: '@@client/user/SETUP', user });
-}
-
-module.exports = [
-  { type: "@@server/user/LOAD", action: load }
-];
-```
-**./socket.js**
 ```js
-// ...
-// scan all watchers directory and set watchers
-redbone.readWatchersSync(path.join(__dirname, './watchers/'));
-// ...
-```
-
-Maybe you want use your custom logic for setup several watchers? Ok, just use `processWatchers(watchers)` method
-
-## Middlewares
-Just use `use` method of Redbone instance =).
-```js
-redbone.use((client, action) => {
-  if (!action.token) throw new HttpError(403, 'Invalid token');
+redbone.watch(type, function(client, action) {
+  // do something with action
 });
 ```
 
-If you want stop middleware, just `return false` from it:
+If you want to dispatch something back to the client, just call `dispatch` method of `client`'s instance.
+
+### Let's look at an example below:
 ```js
-redbone.use((client, action) => {
-  if (action.type === '@@server/CONSOLE_LOG') {
-    console.info(action.log);
-    // Stop middlewares and watchers
-    return false;
+redbone.watch('ping', function(client, action) {
+  client.dispatch({ type: 'pong' });
+});
+```
+First. We created a `ping` type watcher.
+
+Every `action` like this
+```js
+{
+  type: 'ping'
+}
+```
+comes to the `action` object in the watcher's function.
+Second. We call `dispatch` method of `client`'s instance, now action comes to the other side.
+
+## Middlewares
+If you need a middleware logic, use `use` method of Redbone's instance.
+```js
+redbone.use(function(client, action) {
+  // some logic here
+  // if you want to stop middlewares flow, just return false;
+  // if you wath to continue, return true or undefined
+});
+```
+
+Middlewares and watchers are async by default. You can write async functions for them.
+
+## Typed middlewares
+Middlewares can be used for a specific type:
+```js
+redbone.use(type, function(client, action) {
+  // Something for type
+});
+```
+
+## After middlewares
+You can add middlewares after watchers:
+```js
+redbone.after.use(function(client, action) {
+  // Middleware, after all
+});
+
+// Middlewares for some type
+redbone.after.use(type, function(client, action) {
+  // Middleware after type
+});
+```
+
+For those who are attentive: `redbone.use` is just an alias for` redbone.before.use`.
+
+## Catcher
+In Redbone, you can manage the errors that occurred in your middlewares and watchers in one place.
+To do this, simply add the error handler function:
+```js
+redbone.catch(function(err, client, action) {
+  console.error(err);
+  if (client) {
+    client.dispatch({ type: 'error', payload: err });
   }
 });
 ```
+In example default `catcher` presented.
 
-You want to throw Error? Just do it:
+Please note that the client and the action will not always be available.
+If the error occurred when the client is not yet,
+or when it was not possible to receive the action,
+they will not be transferred to the catcher.
+
+## Transports
+Initially, Redbone was created to work with socket.io as a transport,
+and Redux as a state store on the frontend.
+
+Now you can use different transports and storages.
+
+Transport should be an EventEmitter children.
+When transport emits `dispatch` event redbone starts process `client` and `action`.
+For example TCP transport might look like this:
 ```js
-const HttpError = require('redbone/Errors/HttpError');
-redbone.use((client, action) => {
-  if (!action.token) throw new HttpError(403, 'Your token is Invalid');
-});
+const EventEmitter = require('events');
+// We will look it closer later
+const Client = require('./Client');
+
+// Transport should be an EventEmitter child
+class TcpTransport extends EventEmitter {
+  // the constructor will be his own for each transport
+  constructor(server) {
+    super();
+    // this field will be added when transport will be added to a Redbone's instance
+    this.redbone = null;
+    this.__server = null;
+
+    this.onConnection = this.onConnection.bind(this);
+    this.onError = this.onError.bind(this);
+    this.server = server;
+  }
+
+  set server(server) {
+    if (this.__server) this._unsub(this.__server);
+    this._sub(server);
+    this.__server = server;
+  }
+
+  get server() {
+    return this.__server;
+  }
+
+  _sub(server) {
+    server.on('connection', this.onConnection);
+    server.on('error', this.onError);
+  }
+
+  _unsub(server) {
+    server.removeListener('connection', this.onConnection);
+    server.removeListener('error', this.onError);
+  }
+
+  _processAction(data, client) {
+    try {
+      const action = JSON.parse(data);
+      // When transport has a client and an action
+      // it should emit dispatch
+      this.emit('dispatch', client, action);
+    } catch (err) {
+      this.emit('error', err, client);
+    }
+  }
+
+  onConnection(socket) {
+    // client is an instance of Client class.
+    // Every platform shoud implement Client class, inherited from Redbone's Client,
+    // we will look it closer later
+    const client = new Client(null, socket, this);
+    // every transport should emit connection event
+    this.emit('connection', client);
+    socket.setEncoding('utf8');
+    socket.on('data', (data) => this._processAction(data, client));
+    socket.on('error', (err) => {
+      // every transport should emit error event, when error occurs
+      this.emit('error', err, client);
+    });
+    socket.on('disconnect', () => {
+      // every transport should emit disconnect event
+      this.emit('disconnect', client);
+    });
+  }
+
+  onError(err) {
+    this.emit('error', err);
+  }
+}
 ```
-Errors from middlewares and watchers will be caught by a special function, which you can set as follows:
+
+Redbone has several transports out of the box.
+
+## Clients
+Redbone needs clients to get a way to send reaction from it to client.
+Clients objects lives until connection is broken.
+
+Every transport should implement own Client class, inherited from Redbone's Client class.
+
+For example `TcpTransport`'s `Client` might look like this:
 ```js
-redbone.catch((client, action, err) => {
-  // ...your error logic here
-});
+const { Client: ClientMain } = require('redbone');
+
+class Client extends ClientMain {
+  // send is the only method the Сlient should implement
+  send(action) {
+    this.native.write(JSON.stringify(action));
+  }
+}
 ```
 
-## RRPC
+`send` calls every time, when `client.dispatch(action)` occurs.
 
-RRPC — is Redbone's Remote Procedure Call
-
-You can call any method of any object you want directly from a client.
-
-### Add RPC to the Redbone on the server side
-
-```js
-// ...
-const Redbone = require('redbone');
-const RPC = Redbone.extensions.RPC;
-
-const redbone = new Redbone(connector);
-const rpc = new RPC();
-
-redbone.extension(rpc);
-
-// add mongoose models to the rpc
-rpc.setLib('mongoose', mongoose.models);
-```
-
-### Call from client side with socket.io and default input event
-```js
-io.emit('dispatch', {
-  type: '@@server/rpc/CALL',
-  lib: 'mongoose',
-  module: 'User',
-  method: 'getUserAvararLink',
-  arguments: userToken,
-  backType: '@@client/user/SET_USER_PROFILE'
-});
-/**
- * Output example
- * {
- *   type: '@@client/user/SET_USER_PROFILE',
- *   payload: {
- *     avatar: 'http://example.com/user/134/avatar.jpg'
- *   }
- * }
- */
-```
-- `lib` — library in RPC
-- `module` — field in library
-- `method` — method of field
-- `arguments` — the first argument of method
-- `flat` — Boolean, if it is true, and arguments is an array, arguments will be send to method with spread operator (`...arguments`)
-- `merge` — Boolean, if if is true, and the method of module return object — will assign result into the root of action, instead of payload field
-- `backType` — type for back action, default is “`@@client/rpc/RETURN`”
-
-### Publish/Subscribe
-
-Some of your modules can be an instance of `EventEmitter`.
-If you want to subscribe to some events, you can do it with following action:
-```js
-io.emit('dispatch', {
-  type: '@@server/rpc/SUB',
-  lib: 'mongoose',
-  module: 'User',
-  event: 'change_id-1',
-  payload: userToken,
-  backType: '@@client/user/SET_USER_PROFILE'
-});
-```
-
-Now all `change_id-1` events will be dispatched to the client side with `backType`
-
-If you want to unsubscribe, just use `@@server/rpc/UNSUB` type with `lib`, `module`, `event` fields.
-
-All your listeners will be removed automaticaly, when client connection lost.
-
-## Other documentation, and grammar fixes comming soon
+Clients have many useful properties.
+For example, customers are able to automatically generate actions.

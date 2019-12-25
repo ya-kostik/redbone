@@ -1,11 +1,16 @@
 module.exports = {
   verbose: true,
+  browser: false,
+  testEnvironment: 'node',
+  transform: {},
   collectCoverage: true,
   collectCoverageFrom: [
-    'lib/**/*.js',
+    '**/*.js',
     '!**/node_modules/**',
     '!**/vendor/**',
-    '!**/coverage/**'
+    '!**/coverage/**',
+    '!**/.eslintrc.js',
+    '!**/jest.config.js'
   ],
   globals: {
   }
