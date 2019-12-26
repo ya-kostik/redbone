@@ -16,10 +16,7 @@ const Middleware = require('./Middleware');
  * Simple two way dispatcher
  */
 class Redbone {
-  constructor(transport = null, options = {}) {
-    this.transport = transport;
-    this.options = options;
-
+  constructor() {
     this.before = new Middleware(this);
     this.watchers = new Middleware(this);
     this.after = new Middleware(this);
