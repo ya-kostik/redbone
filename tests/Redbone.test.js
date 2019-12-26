@@ -172,4 +172,33 @@ describe('Redbone class', () => {
 
     await expect(redbone.dispatch(client, { type })).rejects.toThrow(error);
   });
+
+  test('uses typed middlewares', async () => {
+    const redbone = new Redbone();
+    const client = new Client();
+
+    const type = 'test';
+    const otherType = 'other test';
+    const otherOtherType = 'don\'t test';
+    /* eslint-disable-next-line */
+    const regexpType = new RegExp(`${type}$`);
+
+    const handler = getTestWatcher(redbone, client, type);
+    const middlewareForType = jest.fn(handler);
+    const middlewareForRegExp = jest.fn();
+    const middlewareForOtherType = jest.fn();
+
+    redbone.
+    use(type, middlewareForType).
+    use(regexpType, middlewareForRegExp).
+    use(otherType, middlewareForOtherType);
+
+    for (const actionType of [type, type, otherType, otherOtherType]) {
+      await redbone.dispatch(client, { type: actionType });
+    }
+
+    expect(middlewareForType.mock.calls.length).toBe(2);
+    expect(middlewareForRegExp.mock.calls.length).toBe(4);
+    expect(middlewareForOtherType.mock.calls.length).toBe(1);
+  });
 });
