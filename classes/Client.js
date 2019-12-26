@@ -1,6 +1,4 @@
-const EventEmitter = require('events');
-
-class Client extends EventEmitter {
+class Client {
 
 }
 
