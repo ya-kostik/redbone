@@ -3,11 +3,11 @@ const isNot = require('../lib/isNot');
 /**
  * @class Client
  * Redbone Client class
- * @prop {Mixed}            native — is a native client, for your convenience
- * @prop {(Transport|null)} transport — is a transport for Redbone
- * @param {Object}           [options = {}]
- * @param {Mixed}            [options.native = null]
- * @param {Transport}        [options.tranport = null]
+ * @prop {Mixed} native — is a native client, for your convenience
+ * @prop {Mixed} transport — is a transport for Redbone
+ * @param {Object} [options = {}]
+ * @param {Mixed}  [options.native = null]
+ * @param {Mixed}  [options.tranport = null]
  */
 class Client {
   constructor({ native = null, transport = null } = {}) {

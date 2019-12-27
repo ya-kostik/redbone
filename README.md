@@ -34,7 +34,7 @@ Additionaly, install `socket.io`, or other transport modules, if it requires.
 ## Create Redbone's instance
 ```js
 const Redbone = require('redbone');
-const redbone = new Redbone(transport);
+const redbone = new Redbone();
 ```
 
 ## Watchers
@@ -99,7 +99,7 @@ redbone.after.use(type, function(client, action) {
 });
 ```
 
-For those who are attentive: `redbone.use` is just an alias for` redbone.before.use`.
+For those who are attentive: `redbone.use` is just an alias for `redbone.before.use`.
 
 ## Catcher
 In Redbone, you can manage the errors that occurred in your middlewares and watchers in one place.
@@ -125,22 +125,20 @@ and Redux as a state store on the frontend.
 
 Now you can use different transports and storages.
 
-Transport should be an EventEmitter children.
-When transport emits `dispatch` event redbone starts process `client` and `action`.
 For example TCP transport might look like this:
 ```js
-const EventEmitter = require('events');
 // We will look it closer later
 const Client = require('./Client');
 
 // Transport should be an EventEmitter child
-class TcpTransport extends EventEmitter {
+class TcpTransport {
+  #server = null;
+
   // the constructor will be his own for each transport
   constructor(server) {
     super();
     // this field will be added when transport will be added to a Redbone's instance
-    this.redbone = null;
-    this.__server = null;
+    this.redbone = new Redbone();
 
     this.onConnection = this.onConnection.bind(this);
     this.onError = this.onError.bind(this);
@@ -148,13 +146,13 @@ class TcpTransport extends EventEmitter {
   }
 
   set server(server) {
-    if (this.__server) this._unsub(this.__server);
+    if (this.#server) this._unsub(this.#server);
     this._sub(server);
-    this.__server = server;
+    this.#server = server;
   }
 
   get server() {
-    return this.__server;
+    return this.#server;
   }
 
   _sub(server) {
@@ -167,14 +165,15 @@ class TcpTransport extends EventEmitter {
     server.removeListener('error', this.onError);
   }
 
-  _processAction(data, client) {
+  _processAction(client, data) {
     try {
       const action = JSON.parse(data);
       // When transport has a client and an action
-      // it should emit dispatch
-      this.emit('dispatch', client, action);
+      // it should call redbone's dispatch
+      this.redbone.dispatch(client, action);
     } catch (err) {
-      this.emit('error', err, client);
+      // If JSON is invalid
+      this.redbone.catcher(err, client, action);
     }
   }
 
@@ -182,23 +181,18 @@ class TcpTransport extends EventEmitter {
     // client is an instance of Client class.
     // Every platform shoud implement Client class, inherited from Redbone's Client,
     // we will look it closer later
-    const client = new Client(null, socket, this);
-    // every transport should emit connection event
-    this.emit('connection', client);
+    const client = new Client({ transport: this, native: socket });
+    this.redbone.dispatch(client, { type: 'connection' });
     socket.setEncoding('utf8');
     socket.on('data', (data) => this._processAction(data, client));
-    socket.on('error', (err) => {
-      // every transport should emit error event, when error occurs
-      this.emit('error', err, client);
-    });
+    socket.on('error', (err) => console.error(err));
     socket.on('disconnect', () => {
-      // every transport should emit disconnect event
-      this.emit('disconnect', client);
+      this.redbone.dispatch(client, { type: 'disconnect' });
     });
   }
 
   onError(err) {
-    this.emit('error', err);
+    console.error(err);
   }
 }
 ```
@@ -224,6 +218,3 @@ class Client extends ClientMain {
 ```
 
 `send` calls every time, when `client.dispatch(action)` occurs.
-
-Clients have many useful properties.
-For example, customers are able to automatically generate actions.
