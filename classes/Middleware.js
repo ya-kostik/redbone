@@ -5,19 +5,33 @@ const isRegExp = require('lodash/isRegExp');
 const isNot = require('../lib/isNot');
 const setToMap = require('../lib/setToMap');
 
+/**
+ * Middleware processor for Redbone class
+ * @class Middleware
+ */
 class Middleware {
   constructor(redbone) {
     this.redbone = redbone;
 
+    this.allHandlers = [];
     this.plainHandlers = new Map();
     this.regexpHandlers = new Map();
-    this.allHandlers = [];
   }
 
+  /**
+   * Get plain handlers by type
+   * @param  {String} type — type of action
+   * @return {Array}
+   */
   getPlainHandlers(type) {
     return this.plainHandlers.get(type) || [];
   }
 
+  /**
+   * Get regexp handlers by type
+   * @param  {String} type — type of action
+   * @return {Array}
+   */
   getRegexpHandlers(type) {
     let handlers = [];
     this.regexpHandlers.forEach((regexpHandlers, regexp) => {
@@ -28,7 +42,11 @@ class Middleware {
     return handlers;
   }
 
-
+  /**
+   * Get handlers by type
+   * @param  {String} type — type of action
+   * @return {Array}
+   */
   getHandlers(type) {
     let handlers = this.allHandlers;
 
@@ -38,6 +56,12 @@ class Middleware {
     return handlers;
   }
 
+  /**
+   * Use handler
+   * @param  {String} type — type of action
+   * @param  {Function} handler
+   * @return {Redbone} parent Redbone's instance, it is need for chaining
+   */
   use(type, handler) {
     if (isFunction(type)) {
       handler = type;
@@ -62,11 +86,24 @@ class Middleware {
     return this.redbone;
   }
 
+  /**
+   * Process action
+   * @param  {Client} client
+   * @param  {Action} action
+   * @return {Promise}
+   */
   dispatch(client, action) {
     const handlers = this.getHandlers(action.type);
     return this.run(handlers, client, action);
   }
 
+  /**
+   * Run handlers for action
+   * @param  {Array<Function>} handlers
+   * @param  {Client} client
+   * @param  {Action} action
+   * @return {Promise<Boolean>}
+   */
   async run(handlers, client, action) {
     for (const handler of handlers) {
       const result = await handler(client, action, this.redbone);
