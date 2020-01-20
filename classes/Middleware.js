@@ -57,17 +57,35 @@ class Middleware {
   }
 
   /**
+   * Use handlers
+   * @param  {String} type — type of action
+   * @param  {Function|Array} handlers
+   * @return {Redbone} parent Redbone's instance, it is need for chaining
+   */
+  use(...handlers) {
+    const type = isFunction(handlers[0]) || Array.isArray(handlers[0])
+    ? null
+    : handlers.shift();
+
+    for (const handler of handlers) {
+      if (handler === undefined) continue;
+      if (Array.isArray(handler)) {
+        this.use(type, ...handler);
+        continue;
+      }
+      this.useOne(type, handler);
+    }
+
+    return this.redbone;
+  }
+
+  /**
    * Use handler
    * @param  {String} type — type of action
    * @param  {Function} handler
    * @return {Redbone} parent Redbone's instance, it is need for chaining
    */
-  use(type, handler) {
-    if (isFunction(type)) {
-      handler = type;
-      type = null;
-    }
-
+  useOne(type, handler) {
     isNot(handler, 'function', 'handler');
 
     if (type === null) {

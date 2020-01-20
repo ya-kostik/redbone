@@ -1,5 +1,6 @@
 const isNot = require('../lib/isNot');
 const Middleware = require('./Middleware');
+const Client = require('./Client');
 
 /**
  * Handler type for a middleware or watcher
@@ -52,10 +53,8 @@ class Redbone {
    * @param  {Function}    middleware — is a middleware's handler
    * @return {Redbone}     this
    */
-  use(type, middleware) {
-    this.before.use(type, middleware);
-    // It is need for chaining
-    return this;
+  use() {
+    return this.before.use(...arguments);
   }
 
   /**
@@ -97,4 +96,5 @@ class Redbone {
   }
 }
 
+Redbone.Client = Client;
 module.exports = Redbone;

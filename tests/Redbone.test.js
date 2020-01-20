@@ -2,6 +2,7 @@
 const ACTION_ERROR_TEXT = 'is not a valid action';
 
 const Redbone = require('../classes/Redbone');
+const MainClient = require('../classes/Client');
 
 const Client = require('./mocks/TestClient');
 
@@ -11,6 +12,42 @@ function getTestWatcher(redbone, client, type) {
     expect(client).toBe(client);
     expect(client.redbone).toBe(redbone);
   };
+}
+
+function createMiddlewares(count, cb) {
+  const middlewares = [];
+  for (let i = 0; i < count; i++) {
+    middlewares.push(jest.fn(cb));
+  }
+
+  return middlewares;
+}
+
+function inspectMiddlewares(middlewares, count = 1) {
+  for (const middleware of middlewares) {
+    expect(middleware.mock.calls.length).toBe(count);
+  }
+}
+
+function createMiddlewaresTest(firstUse, secondUse) {
+  return async () => {
+    const redbone = new Redbone();
+    const client = new Client();
+
+    const middlewares = createMiddlewares(3);
+
+    const action = { type: 'test' };
+
+    firstUse(redbone, middlewares);
+
+    await redbone.dispatch(client, action);
+    inspectMiddlewares(middlewares, 1);
+
+    secondUse(redbone, middlewares, action);
+    await redbone.dispatch(client, action);
+
+    inspectMiddlewares(middlewares, 3);
+  }
 }
 
 describe('Redbone class', () => {
@@ -201,4 +238,20 @@ describe('Redbone class', () => {
     expect(middlewareForRegExp.mock.calls.length).toBe(4);
     expect(middlewareForOtherType.mock.calls.length).toBe(1);
   });
+
+  test('has raw Client class', () => {
+    expect(Redbone.Client).toBe(MainClient);
+  });
+
+  test('can use many middlewares from arguments', createMiddlewaresTest((redbone, middlewares) => {
+    redbone.use(...middlewares);
+  }, (redbone, middlewares, action) => {
+    redbone.use(action.type, ...middlewares);
+  }));
+
+  test('can use many middlewares from array', createMiddlewaresTest((redbone, middlewares) => {
+    redbone.use(middlewares);
+  }, (redbone, middlewares, action) => {
+    redbone.use(action.type, middlewares);
+  }));
 });
