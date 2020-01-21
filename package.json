@@ -1,6 +1,6 @@
 {
   "name": "redbone",
-  "version": "4.0.0-beta.1",
+  "version": "4.0.0-beta.2",
   "description": "Polymorphic library for two-way dispatching of actions",
   "main": "index.js",
   "repository": {

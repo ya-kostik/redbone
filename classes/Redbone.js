@@ -1,6 +1,9 @@
-const isNot = require('../lib/isNot');
 const Middleware = require('./Middleware');
 const Client = require('./Client');
+
+const isNot = require('../lib/isNot');
+const isActionOfType = require('../lib/isActionOfType');
+const createAction = require('../lib/createAction');
 
 /**
  * Handler type for a middleware or watcher
@@ -10,6 +13,7 @@ const Client = require('./Client');
 /**
  * @typedef {Object} Action
  * @prop    {String} type
+ * @prop    {Mixed}  [payload]
  */
 
 /**
@@ -29,8 +33,8 @@ class Redbone {
    * @param  {Function}    watcher — is a watcher's handler
    * @return {Redbone}     this
    */
-  watch(type, watcher) {
-    this.watchers.use(type, watcher);
+  watch(/* type, watcher */) {
+    this.watchers.use(...arguments);
     // It is need for chaining
     return this;
   }
@@ -53,7 +57,7 @@ class Redbone {
    * @param  {Function}    middleware — is a middleware's handler
    * @return {Redbone}     this
    */
-  use() {
+  use(/* type, middleware */) {
     return this.before.use(...arguments);
   }
 
@@ -96,5 +100,10 @@ class Redbone {
   }
 }
 
+Redbone.prototype.is = isActionOfType;
+Redbone.prototype.createAction = createAction;
+
+Redbone.is = isActionOfType;
+Redbone.createAction = createAction;
 Redbone.Client = Client;
 module.exports = Redbone;

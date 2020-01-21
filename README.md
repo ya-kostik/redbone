@@ -127,32 +127,37 @@ Now you can use different transports and storages.
 
 For example TCP transport might look like this:
 ```js
-// We will look it closer later
+const { Server } = require('net');
+const Redbone = require('redbone');
+// We will look it later
 const Client = require('./Client');
 
-// Transport should be an EventEmitter child
-class TcpTransport {
-  #server = null;
+const Types = {
+  CONNECTION: 'connection',
+  DISCONNECT: 'disconnect'
+}
 
-  // the constructor will be his own for each transport
-  constructor(server) {
-    super();
-    // this field will be added when transport will be added to a Redbone's instance
+class RedboneTransportTCP {
+  constructor(options) {
     this.redbone = new Redbone();
 
     this.onConnection = this.onConnection.bind(this);
     this.onError = this.onError.bind(this);
-    this.server = server;
+    this.onRedboneError = this.onRedboneError.bind(this);
+
+    this.server = new Server(options);
+    // Add redbone's catcher
+    this.redbone.catch(this.onRedboneError);
   }
 
   set server(server) {
-    if (this.#server) this._unsub(this.#server);
+    if (this._server) this._unsub(this._server);
     this._sub(server);
-    this.#server = server;
+    this._server = server;
   }
 
   get server() {
-    return this.#server;
+    return this._server || null;
   }
 
   _sub(server) {
@@ -161,60 +166,153 @@ class TcpTransport {
   }
 
   _unsub(server) {
-    server.removeListener('connection', this.onConnection);
-    server.removeListener('error', this.onError);
+    server.off('connection', this.onConnection);
+    server.off('error', this.onError);
+  }
+
+  listen(port) {
+    if (!this._server) throw new ReferenceError('no server for listen')
+    return new Promise((resolve, reject) => {
+      this._server.listen(port, (err) => {
+        if (err) return reject(err);
+        return resolve();
+      });
+    });
+  }
+
+  close() {
+    if (!this._server) return;
+    return new Promise((resolve, reject) => {
+      this._server.close((err) => {
+        if (err) return reject(err);
+        return resolve();
+      });
+    });
   }
 
   _processAction(client, data) {
     try {
+      // process action every message
       const action = JSON.parse(data);
-      // When transport has a client and an action
-      // it should call redbone's dispatch
       this.redbone.dispatch(client, action);
     } catch (err) {
-      // If JSON is invalid
-      this.redbone.catcher(err, client, action);
+      this.onError(err);
     }
   }
 
-  onConnection(socket) {
-    // client is an instance of Client class.
-    // Every platform shoud implement Client class, inherited from Redbone's Client,
-    // we will look it closer later
-    const client = new Client({ transport: this, native: socket });
-    this.redbone.dispatch(client, { type: 'connection' });
+  _changeSocketSub(socket, onData, onDisconnect, onError, on = true) {
+    const method = on ? 'on' : 'off';
+    socket[method]('data', onData);
+    socket[method]('error', onError);
+    socket[method]('close', onDisconnect);
+  }
+
+  _createClient(socket) {
     socket.setEncoding('utf8');
-    socket.on('data', (data) => this._processAction(data, client));
-    socket.on('error', (err) => console.error(err));
-    socket.on('disconnect', () => {
-      this.redbone.dispatch(client, { type: 'disconnect' });
+    // create client
+    return new Client({
+      transport: this,
+      native: socket
     });
+  }
+
+  _createOnData(client) {
+    return (data) => {
+      this._processAction(client, data);
+    };
+  }
+
+  _createOnDisconnect(client, onData) {
+    const { DISCONNECT } = this.constructor.Types;
+
+    const onDisconnect = () => {
+      // dispatch disconnect action
+      this.redbone.dispatch(client, { type: DISCONNECT });
+      this._changeSocketSub(
+        client.native, onData, onDisconnect, this.onError, false
+      );
+    }
+
+    return onDisconnect;
+  }
+
+  _subClient(client) {
+    const onData = this._createOnData(client);
+    const onDisconnect = this._createOnDisconnect(client, onData);
+    this._changeSocketSub(
+      client.native, onData, onDisconnect, this.onError
+    );
+  }
+
+  onConnection(socket) {
+    const { CONNECTION } = this.constructor.Types;
+    const client = this._createClient(socket);
+    this._subClient(client);
+    // dispatch connection action
+    return this.redbone.dispatch(client, { type: CONNECTION });
   }
 
   onError(err) {
     console.error(err);
   }
+
+  onRedboneError(err, client) {
+    if (!err.statusCode) {
+      throw err;
+    }
+
+    client.dispatch({
+      type: 'error',
+      code: err.statusCode || 500
+    });
+  }
 }
+
+RedboneTransportTCP.Types = Types;
+module.exports = RedboneTransportTCP;
 ```
 
-Redbone has several transports out of the box.
+Redbone has several transports in different modules.
+
+You can examine the examples in detail in a [separate repository](https://github.com/ya-kostik/redbone-examples).
 
 ## Clients
 Redbone needs clients to get a way to send reaction from it to client.
-Clients objects lives until connection is broken.
+Clients objects lives until connection is closed.
 
 Every transport should implement own Client class, inherited from Redbone's Client class.
 
 For example `TcpTransport`'s `Client` might look like this:
 ```js
-const { Client: ClientMain } = require('redbone');
+const Redbone = require('../../');
+const { write } = require('./lib/socket');
 
-class Client extends ClientMain {
-  // send is the only method the Сlient should implement
+const PERMITTED_ERRORS = new Set([
+  'EPIPE' // Send action after socket closed
+]);
+
+class Client extends Redbone.Client {
   send(action) {
-    this.native.write(JSON.stringify(action));
+    return this.write(action).
+    catch((err) => {
+      if (PERMITTED_ERRORS.has(err.code)) return;
+      return this.transport.onError(err);
+    });
+  }
+
+  write(action) {
+    return new Promise((resolve, reject) => {
+      const message = JSON.stringify(action);
+      this.native.once('error', reject);
+      return this.native.write(action, (err) => {
+        if (err) return reject(err);
+        return resolve();
+      });
+    });
   }
 }
+
+module.exports = Client;
 ```
 
 `send` calls every time, when `client.dispatch(action)` occurs.

@@ -1,33 +1,14 @@
 /* global jest describe test expect */
-const ACTION_ERROR_TEXT = 'is not a valid action';
-
 const Redbone = require('../classes/Redbone');
 const MainClient = require('../classes/Client');
 
 const Client = require('./mocks/TestClient');
 
-function getTestWatcher(redbone, client, type) {
-  return (client, action) => {
-    expect(action.type).toBe(type);
-    expect(client).toBe(client);
-    expect(client.redbone).toBe(redbone);
-  };
-}
+const createMiddlewares = require('./lib/createMiddlewares');
+const getTestWatcher = require('./lib/getTestWatcher');
+const inspectMiddlewares = require('./lib/inspectMiddlewares');
 
-function createMiddlewares(count, cb) {
-  const middlewares = [];
-  for (let i = 0; i < count; i++) {
-    middlewares.push(jest.fn(cb));
-  }
-
-  return middlewares;
-}
-
-function inspectMiddlewares(middlewares, count = 1) {
-  for (const middleware of middlewares) {
-    expect(middleware.mock.calls.length).toBe(count);
-  }
-}
+const ACTION_ERROR_TEXT = 'is not a valid action';
 
 function createMiddlewaresTest(firstUse, secondUse) {
   return async () => {
@@ -254,4 +235,41 @@ describe('Redbone class', () => {
   }, (redbone, middlewares, action) => {
     redbone.use(action.type, middlewares);
   }));
+
+  test('creates boilerplate action', () => {
+    const type = 'test';
+    const actionWithoutPayload = Redbone.createAction(type);
+    const actionWithPayload = Redbone.createAction(type, { message: type });
+    const actionWithNullPayload = Redbone.createAction(type, null);
+
+    const redbone = new Redbone();
+    const actionCreatedByInstance = redbone.createAction(type);
+
+    expect(actionWithoutPayload).toEqual({ type });
+    expect(actionWithPayload).toEqual({
+      type,
+      payload: { message: type }
+    });
+    expect(actionWithNullPayload).toEqual({ type, payload: null });
+    expect(actionCreatedByInstance).toEqual(actionWithoutPayload);
+  });
+
+  test('compares action and type', () => {
+    const firstType = 'first test';
+    const secondType = 'second test';
+    const thirdType = 'crazy type';
+    const regexpType = /test/;
+
+    const firstAction = Redbone.createAction(firstType);
+    const secondAction = Redbone.createAction(secondType);
+    const thirdAction = Redbone.createAction(thirdType);
+
+
+    expect(Redbone.is(firstAction, firstType)).toBe(true);
+    expect(Redbone.is(firstAction, secondType)).toBe(false);
+
+    expect(Redbone.is(firstAction, regexpType)).toBe(true);
+    expect(Redbone.is(secondAction, regexpType)).toBe(true);
+    expect(Redbone.is(thirdAction, regexpType)).toBe(false);
+  });
 });
