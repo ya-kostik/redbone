@@ -137,7 +137,7 @@ const Types = {
   DISCONNECT: 'disconnect'
 }
 
-class RedboneTransportTCP {
+class TransportTCP {
   constructor(options) {
     this.redbone = new Redbone();
 
@@ -268,8 +268,8 @@ class RedboneTransportTCP {
   }
 }
 
-RedboneTransportTCP.Types = Types;
-module.exports = RedboneTransportTCP;
+TransportTCP.Types = Types;
+module.exports = TransportTCP;
 ```
 
 Redbone has several transports in different modules.
