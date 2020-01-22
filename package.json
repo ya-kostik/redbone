@@ -1,6 +1,6 @@
 {
   "name": "redbone",
-  "version": "4.0.0-beta.2",
+  "version": "4.0.0-beta.3",
   "description": "Polymorphic library for two-way dispatching of actions",
   "main": "index.js",
   "repository": {
@@ -21,7 +21,6 @@
     "babel-eslint": "^10.0.3",
     "eslint": "^6.7.1",
     "eslint-plugin-security": "^1.4.0",
-    "jest": "^24.9.0",
-    "socket.io": "^2.3.0"
+    "jest": "^24.9.0"
   }
 }

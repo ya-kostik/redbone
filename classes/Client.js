@@ -1,3 +1,5 @@
+const isString = require('lodash/isString');
+const createAction = require('../lib/createAction');
 const isNot = require('../lib/isNot');
 
 /**
@@ -21,8 +23,11 @@ class Client {
    * @param  {Action} action
    * @return {Mixed} value depends on send method
    */
-  dispatch(action) {
-    isNot(action, 'valid action', 'action');
+  dispatch(action, payload) {
+    isString(action)
+      ? action = createAction(action, payload)
+      : isNot(action, 'valid action', 'action');
+
     return this.send(action);
   }
 

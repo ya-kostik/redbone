@@ -10,7 +10,6 @@ const MainClient = require('../classes/Client');
 describe('Client class', () => {
   test('calls run for dispatch method', () => {
     const client = new Client();
-
     const type = 'test';
 
     client.native = jest.fn((action) => {
@@ -22,11 +21,35 @@ describe('Client class', () => {
     expect(client.native.mock.calls.length).toBe(1);
   });
 
+  test('creates action from type', () => {
+    const client = new Client();
+    const type = 'test';
+    const payload = {};
+
+    const onlyType = jest.fn((action) => {
+      expect(action.type).toBe(type);
+      expect(action.payload).not.toBeDefined();
+    });
+
+    const withPayload = jest.fn((action) => {
+      expect(action.type).toBe(type);
+      expect(action.payload).toBe(payload);
+    });
+
+    client.native = onlyType;
+    client.dispatch(type);
+
+    client.native = withPayload;
+    client.dispatch(type, payload);
+
+    expect(onlyType.mock.calls.length).toBe(1);
+    expect(withPayload.mock.calls.length).toBe(1);
+  });
+
   test('doesn\'t take invalid action', () => {
     const client = new Client();
 
     expect(() => client.dispatch({})).toThrow(ErrorText.ACTION_INVALID);
-    expect(() => client.dispatch('test')).toThrow(ErrorText.ACTION_INVALID);
     expect(() => client.dispatch()).toThrow(ErrorText.ACTION_INVALID);
     expect(() => client.dispatch(null)).toThrow(ErrorText.ACTION_INVALID);
   });
