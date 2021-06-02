@@ -1,15 +1,14 @@
 module.exports = {
-  parser: 'babel-eslint',
-  plugins: ['security'],
   env: {
-    es6: true,
+    commonjs: true,
+    es2021: true,
     node: true
   },
-  extends: ['eslint:recommended', 'plugin:security/recommended'],
+  extends: 'eslint:recommended',
+  parserOptions: {
+      ecmaVersion: 12
+  },
   rules: {
     'no-console': ['error', { 'allow': ['error', 'info'] }],
-    'security/detect-object-injection': [0],
-    'security/detect-non-literal-fs-filename': [0]
-  },
-  globals: {}
-}
+  }
+};

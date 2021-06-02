@@ -1,6 +1,6 @@
 {
   "name": "redbone",
-  "version": "4.0.0-beta.3",
+  "version": "4.0.0-beta.4",
   "description": "Polymorphic library for two-way dispatching of actions",
   "main": "index.js",
   "repository": {
@@ -10,7 +10,7 @@
   "scripts": {
     "test": "jest --verbose",
     "watch": "jest --watch",
-    "eslint": "eslint ./"
+    "lint": "eslint ./"
   },
   "author": "Constantin T.",
   "license": "Apache-2.0",
@@ -18,9 +18,8 @@
     "lodash": "^4.17.15"
   },
   "devDependencies": {
-    "babel-eslint": "^10.0.3",
-    "eslint": "^6.7.1",
+    "eslint": "^7.27.0",
     "eslint-plugin-security": "^1.4.0",
-    "jest": "^24.9.0"
+    "jest": "^27.0.3"
   }
 }
