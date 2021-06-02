@@ -10,6 +10,5 @@
   },
   "globals": {
     "NODE_ENV": true
-  },
-  "ignore-path": ["node_modules"]
+  }
 }
